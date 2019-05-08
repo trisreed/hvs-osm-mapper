@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-RVA Network Mapper
+RVS Network Mapper
 Planning and Transport Research Centre (PATREC)
 
-This script is used to map the RVA Network data to OSM components.
+This script is used to map the RVS Network data to OSM components.
 """
 
 
@@ -11,8 +11,8 @@ __author__ = "Tristan Reed"
 __version__ = "0.1.0"
 
 
-""" Specify the URL for the RVA network. """
-RVA_SOURCE = "https://opendata.arcgis.com/datasets/9eddd767132d46aebdef328ec79573d3_46.geojson"
+""" Specify the URL for the RVS network. """
+RVS_SOURCE = "https://opendata.arcgis.com/datasets/9eddd767132d46aebdef328ec79573d3_46.geojson"
 
 
 """ Specify the base URL for the OSRM instance. """
@@ -28,15 +28,15 @@ def main():
     """ Pull the GeoJSON file from Main Roads / ESRI. Only care about the 
     'feature list' so pull that out straight away. """
     print("Retrieving data from Main Roads / ESRI...")
-    rva_data = requests.get(RVA_SOURCE)
+    rvs_data = requests.get(RVS_SOURCE)
     """ @note For testing I am limiting this to the first two feature(s). """
-    rva_json = rva_data.json()["features"][0:2]
+    rvs_json = rvs_data.json()["features"][0:2]
 
     """ Create a list for dictionaries for output. """
     return_list = []
     
     """ Iterate over that feature list. """
-    for each_feature in tqdm.tqdm(rva_json):
+    for each_feature in tqdm.tqdm(rvs_json):
 
         """ Pull out the Road ID and Name (for reference). """
         road_id = each_feature["properties"]["ROAD"]
@@ -46,6 +46,7 @@ def main():
         road_geography = each_feature["geometry"]["coordinates"]
 
         """ Convert that into a String of the correct format. """
+        """ @todo ensure both OSRM and the RVS are in same CRS. """
         road_geography = ";".join([",".join(str(x) for x in coord) for coord \
             in road_geography])
 
