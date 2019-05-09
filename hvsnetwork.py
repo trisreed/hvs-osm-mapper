@@ -10,7 +10,7 @@ spatial data to OSM components.
 
 
 __author__ = "Tristan Reed"
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 
 """ Specify the URL for the HVS network. """
@@ -81,8 +81,8 @@ def main():
         """ Merge the lines (hopefully) if a MultiLineString. """
         if (road_geography.geom_type == "MultiLineString"):
 
-            """ Do the Line Merging. """
-            road_geography = linemerge(road_geography)
+            """ Buffer the LineString. """
+            road_geography = road_geography.buffer(0.1)
 
             """ Simplify it for cases of 'dual carriageways'. """
             road_geography = road_geography.simplify(0.1, 
