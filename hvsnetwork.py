@@ -24,6 +24,7 @@ OSRM_SOURCE = "https://router.project-osrm.org/"
 
 """ Import required libraries. """
 import pandas, polyline, requests, time, tqdm
+from shapely.geometry import shape
 
 
 def main():
@@ -58,16 +59,22 @@ def main():
         road_name = each_feature["properties"]["ROAD_NAME"]
 
         """ Pull out the geographic data for this road. """
-        road_geography = each_feature["geometry"]["coordinates"]
+        road_geography = shape(each_feature["geometry"])
+
+        """ Simplify it for cases of 'dual carriageways'. """
+        road_geography = road_geography.simplify(0.05, 
+            preserve_topology = False)
+
+        print(road_geography.coords)
 
         """ Convert that into a list of the correct format. """
         road_geography = polyline.encode([(coord[0], coord[1]) for coord in \
-            road_geography])
-        print(road_geography)
+            road_geography], precision = 5)
 
         """ Generate the URL for the OSRM Matcher. """
-        osrm_url = OSRM_SOURCE + "route/v1/driving/" + road_geography + \
-            "?steps=false&geometries=geojson&overview=full&annotations=true"
+        osrm_url = OSRM_SOURCE + "route/v1/driving/polyline(" + \
+            road_geography + ")?steps=false&geometries=geojson&" + \
+            "overview=full&annotations=true"
 
         """ Specify which match from OSRM to take (this is mainly here to
         remind me to check it and work out which match is best). """
@@ -78,33 +85,40 @@ def main():
 
         """ Sometimes (I am guessing due to the rate limiting) the service will
         return nothing (well, a 429). If so, go back and do it again. """
-        while (osrm_data.status_code != 200):
+        while (osrm_data.status_code == 429):
 
-            """ Check that the status code is a 429. """
-            if (osrm_data.status_code == 429):
+            """ Get the retry time from the response (well, kind of since
+            it doesn't present the right header). """
+            retry_time = int(osrm_data.headers['X-Rate-Limit-Interval']) / 2
 
-                """ Get the retry time from the response (well, kind of since
-                it doesn't present the right header). """
-                retry_time = int(osrm_data.headers['X-Rate-Limit-Interval']) / 2
+            """ Wait that amount of time. """
+            time.sleep(retry_time)
 
-                """ Wait that amount of time. """
-                time.sleep(backoff_timing)
+            """ Try again. """
+            osrm_data = requests.get(osrm_url)
 
-                """ Try again. """
-                osrm_data = requests.get(osrm_url)
+        """ Ensure that we get a 200 at this point in time. """
+        if (osrm_data.status_code == 200):
+            
+            """ Continue on, processing the result. """
+            osrm_json = osrm_data.json()
+            osrm_node_dualist = [leg["annotation"]["nodes"] for leg in \
+                osrm_json["routes"][chosen_osrm_match]["legs"]]
+
+            """ Pull out the list of coordinates as well. """
+            osrm_node_coordlist = osrm_json["routes"][chosen_osrm_match]\
+                ["geometry"]["coordinates"]
+            
+            """ Put it all together and add to list. """
+            return_list.append({"id": road_id, "name": road_name, 
+                "node_list": osrm_node_dualist, 
+                "coord_list": osrm_node_coordlist})
         
-        """ Continue on, processing the result. """
-        osrm_json = osrm_data.json()
-        osrm_node_dualist = [leg["annotation"]["nodes"] for leg in \
-            osrm_json["routes"][chosen_osrm_match]["legs"]]
+        else:
 
-        """ Pull out the list of coordinates as well. """
-        osrm_node_coordlist = osrm_json["routes"][chosen_osrm_match]\
-            ["geometry"]["coordinates"]
-        
-        """ Put it all together and add to list. """
-        return_list.append({"id": road_id, "name": road_name, 
-            "node_list": osrm_node_dualist, "coord_list": osrm_node_coordlist})
+            """ Inform if this failed. """
+            print("Iteration failed with HTTP error code " + \
+                str(osrm_data.status_code))
     
     """ Lazy mode: use Pandas to output to convert to a DataFrame to output to
     the CSV format. """
