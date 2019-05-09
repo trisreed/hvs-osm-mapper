@@ -1,0 +1,7 @@
+{
+    "hvs_path": "",
+    "hvs_url": "https://opendata.arcgis.com/datasets/9eddd767132d46aebdef328ec79573d3_46.geojson",
+    "hvs_use_url": "False",
+    "osrm_server": "https://router.project-osrm.org/",
+    "output_filename": "hvsnetwork.csv"
+}

@@ -5,8 +5,8 @@ Planning and Transport Research Centre (PATREC)
 
 This script is used to map the HVS Network data to OSM node components. It is
 currently a work-in-progress as part of investigating methods to match other
-spatial data to OSM components. 'dotenv' and 'shapely' aren't playing nice with
-Python3, so it is running in Python2 for now.
+spatial data to OSM components. 'shapely' isn't playing nice with Python3, so 
+it is running in Python2 for now.
 """
 
 
@@ -18,20 +18,23 @@ __version__ = "0.2.0"
 import json, os, pandas, polyline, requests, time, tqdm
 
 
-""" DotEnv and Shapely likes to do its own thing. """
-from dotenv import load_dotenv, find_dotenv
+""" Shapely likes to do its own thing. """
 from shapely.geometry import shape
 from shapely.ops import linemerge
 
 
 def main():
 
-    """ Pull the values from the .env file. """
-    hvs_use_url = os.getenv("HVS_USE_URL")
-    hvs_path = os.getenv("HVS_PATH")
-    hvs_url = os.getenv("HVS_URL")
-    osrm_server = os.getenv("OSRM_SERVER")
-    output_filename = os.getenv("OUTPUT_FILENAME")
+    """ Read in the config.json file. """
+    config_file = open("config.json", "r")
+    config_json = json.loads(config_file.read())
+
+    """ Pull the values from the config.json file. """
+    hvs_use_url = config_json["hvs_use_url"]
+    hvs_path = config_json["hvs_path"]
+    hvs_url = config_json["hvs_url"]
+    osrm_server = config_json["osrm_server"]
+    output_filename = config_json["output_filename"]
 
     print(hvs_use_url)
 
@@ -152,9 +155,6 @@ def main():
 
 
 if __name__ == "__main__":
-
-    """ Read in the .env file. """
-    load_dotenv(verbose = True)
 
     """ This is executed when run from the command line. """
     main()
