@@ -36,8 +36,6 @@ def main():
     osrm_server = config_json["osrm_server"]
     output_filename = config_json["output_filename"]
 
-    print(hvs_use_url)
-
     """ Check source type and switch. """
     if (hvs_use_url == "True"):
 
@@ -83,17 +81,8 @@ def main():
         """ Merge the lines (hopefully) if a MultiLineString. """
         if (road_geography.geom_type == "MultiLineString"):
 
-            """ Buffer the LineString. """
-            road_geography = road_geography.buffer(0.1)
-
-            """ Simplify it for cases of 'dual carriageways'. """
-            road_geography = road_geography.simplify(0.1, 
-                preserve_topology = False)
-
-            """ Try Line Merging again. """
-            road_geography = linemerge(road_geography)
-
-        print(road_geography)
+            """ @todo: Work how to summarise this in Shapely. """
+            continue
 
         """ Convert that into a list of the correct format. """
         road_geography = polyline.encode(road_geography.coords, precision = 5)
@@ -109,6 +98,8 @@ def main():
 
         """ Get the data from OSRM. 'Routes' is the key of interest. """
         osrm_data = requests.get(osrm_url)
+
+        print(osrm_data.json())
 
         """ Sometimes (I am guessing due to the rate limiting) the service will
         return nothing (well, a 429). If so, go back and do it again. """
