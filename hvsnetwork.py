@@ -63,7 +63,7 @@ def main():
 
     """ Only care about the 'feature list' so pull that out straight away. If
     you wish to take a subset, specify within the second brackets. """
-    hvs_json = hvs_json["features"][0:100]
+    hvs_json = hvs_json["features"][:]
 
     """ Create a list for dictionaries for output. """
     return_list = []
@@ -85,7 +85,8 @@ def main():
             continue
 
         """ Convert that into a list of the correct format. """
-        road_geography = polyline.encode(road_geography.coords, precision = 5)
+        road_geography = ";".join([",".join(str(x) for x in coord) for coord \
+            in road_geography.coords])
 
         """ Generate the URL for the OSRM Matcher. """
         osrm_url = osrm_server + "route/v1/driving/polyline(" + \
@@ -98,8 +99,6 @@ def main():
 
         """ Get the data from OSRM. 'Routes' is the key of interest. """
         osrm_data = requests.get(osrm_url)
-
-        print(osrm_data.json())
 
         """ Sometimes (I am guessing due to the rate limiting) the service will
         return nothing (well, a 429). If so, go back and do it again. """
