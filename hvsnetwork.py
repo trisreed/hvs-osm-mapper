@@ -74,6 +74,15 @@ def main():
 
         """ Get the data from OSRM. 'Routes' is the key of interest. """
         osrm_data = requests.get(osrm_url)
+        print(osrm_data)
+
+        """ Sometimes (I am guessing due to the rate limiting) the service will
+        return nothing (well, a 429). If so, go back and do it again. """
+        while (osrm_data.status_code != 200):
+            time.sleep(0.5)
+            osrm_data = requests.get(osrm_url)
+        
+        """ Continue on, processing the result. """
         osrm_json = osrm_data.json()
         osrm_node_dualist = [leg["annotation"]["nodes"] for leg in \
             osrm_json["routes"][chosen_osrm_match]["legs"]]
@@ -85,7 +94,7 @@ def main():
         """ The OSRM online service is globally limited to 5999 requests 
         a minute. Generally, network latency means we aren't hitting it too 
         much. But, to be safe, we will sleep for half a second. """
-        time.sleep(0.5)
+        # time.sleep(0.5)
     
     """ Lazy mode: use Pandas to output to convert to a DataFrame to output to
     the CSV format. """
