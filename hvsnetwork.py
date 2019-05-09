@@ -76,17 +76,22 @@ def main():
         """ Get the data from OSRM. 'Routes' is the key of interest. """
         osrm_data = requests.get(osrm_url)
 
-        """ Store a value to use to calculate backoff timing. """
-        backoff_timing = 0.25
-
         """ Sometimes (I am guessing due to the rate limiting) the service will
         return nothing (well, a 429). If so, go back and do it again. """
         while (osrm_data.status_code != 200):
-            print(osrm_data.status_code)
-            print(osrm_data.headers)
-            time.sleep(backoff_timing)
-            backoff_timing = backoff_timing + (1.0 * backoff_timing)
-            osrm_data = requests.get(osrm_url)
+
+            """ Check that the status code is a 429. """
+            if (osrm_data.status_code == 429):
+
+                """ Get the retry time from the response (well, kind of since
+                it doesn't present the right header). """
+                retry_time = int(osrm_data.headers['X-Rate-Limit-Interval']) / 2
+
+                """ Wait that amount of time. """
+                time.sleep(backoff_timing)
+
+                """ Try again. """
+                osrm_data = requests.get(osrm_url)
         
         """ Continue on, processing the result. """
         osrm_json = osrm_data.json()
