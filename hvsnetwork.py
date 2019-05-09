@@ -1,11 +1,12 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """
 HVS Network Mapper
 Planning and Transport Research Centre (PATREC)
 
 This script is used to map the HVS Network data to OSM node components. It is
 currently a work-in-progress as part of investigating methods to match other
-spatial data to OSM components.
+spatial data to OSM components. 'dotenv' and 'shapely' aren't playing nice with
+Python3, so it is running in Python2 for now.
 """
 
 
@@ -13,42 +14,40 @@ __author__ = "Tristan Reed"
 __version__ = "0.2.0"
 
 
-""" Specify the URL for the HVS network. """
-HVS_SOURCE = "/Users/trisreed/Downloads/ArchiveToNAS-181017/Tandem_Drive_" + \
-    "Concessional_Network_2.1_N2.1_Without_Conditions.geojson"
-
-""" Specify where to read from URL or from File. """
-READ_FROM_URL = False
-
-
-""" Specify the base URL for the OSRM instance. """
-OSRM_SOURCE = "https://router.project-osrm.org/"
-
-
 """ Import required libraries. """
-import json, pandas, polyline, requests, time, tqdm
+import json, os, pandas, polyline, requests, time, tqdm
 
 
-""" Shapely likes to do its own thing. """
+""" DotEnv and Shapely likes to do its own thing. """
+from dotenv import load_dotenv, find_dotenv
 from shapely.geometry import shape
 from shapely.ops import linemerge
 
 
 def main():
 
+    """ Pull the values from the .env file. """
+    hvs_use_url = os.getenv("HVS_USE_URL")
+    hvs_path = os.getenv("HVS_PATH")
+    hvs_url = os.getenv("HVS_URL")
+    osrm_server = os.getenv("OSRM_SERVER")
+    output_filename = os.getenv("OUTPUT_FILENAME")
+
+    print(hvs_use_url)
+
     """ Check source type and switch. """
-    if READ_FROM_URL:
+    if (hvs_use_url == "True"):
 
         """ Pull the GeoJSON file from Main Roads / ESRI. """
         print("Retrieving data from Main Roads / ESRI...")
-        hvs_data = requests.get(HVS_SOURCE)
+        hvs_data = requests.get(hvs_url)
         hvs_json = hvs_data.json()
     
     else:
 
         """ Read it out of the file. """
         print("Retrieving data from file.")
-        hvs_data = open(HVS_SOURCE, "r")
+        hvs_data = open(hvs_path, "r")
         hvs_json = json.loads(hvs_data.read())
 
     """ Check for a CRS key and alert either way. """
@@ -97,7 +96,7 @@ def main():
         road_geography = polyline.encode(road_geography.coords, precision = 5)
 
         """ Generate the URL for the OSRM Matcher. """
-        osrm_url = OSRM_SOURCE + "route/v1/driving/polyline(" + \
+        osrm_url = osrm_server + "route/v1/driving/polyline(" + \
             road_geography + ")?steps=false&geometries=geojson&" + \
             "overview=full&annotations=true"
 
@@ -149,10 +148,13 @@ def main():
     the CSV format. """
     print("Outputting to CSV...")
     output_df = pandas.DataFrame(return_list)
-    output_df.to_csv("hvsnetwork.csv", index = False)
+    output_df.to_csv(output_filename, index = False)
 
 
 if __name__ == "__main__":
+
+    """ Read in the .env file. """
+    load_dotenv(verbose = True)
 
     """ This is executed when run from the command line. """
     main()
