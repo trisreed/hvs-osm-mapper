@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-RVS Network Mapper
+HVS Network Mapper
 Planning and Transport Research Centre (PATREC)
 
-This script is used to map the RVS Network data to OSM components.
+This script is used to map the HVS Network data to OSM components.
 """
 
 
@@ -11,8 +11,8 @@ __author__ = "Tristan Reed"
 __version__ = "0.1.0"
 
 
-""" Specify the URL for the RVS network. """
-RVS_SOURCE = "https://opendata.arcgis.com/datasets/9eddd767132d46aebdef328ec79573d3_46.geojson"
+""" Specify the URL for the HVS network. """
+HVS_SOURCE = "https://opendata.arcgis.com/datasets/9eddd767132d46aebdef328ec79573d3_46.geojson"
 
 
 """ Specify the base URL for the OSRM instance. """
@@ -28,15 +28,15 @@ def main():
     """ Pull the GeoJSON file from Main Roads / ESRI. Only care about the 
     'feature list' so pull that out straight away. """
     print("Retrieving data from Main Roads / ESRI...")
-    rvs_data = requests.get(RVS_SOURCE)
+    hvs_data = requests.get(HVS_SOURCE)
     """ @note For testing I am limiting this to the first two feature(s). """
-    rvs_json = rvs_data.json()["features"][0:2]
+    hvs_json = hvs_data.json()["features"][0:2]
 
     """ Create a list for dictionaries for output. """
     return_list = []
     
     """ Iterate over that feature list. """
-    for each_feature in tqdm.tqdm(rvs_json):
+    for each_feature in tqdm.tqdm(hvs_json):
 
         """ Pull out the Road ID and Name (for reference). """
         road_id = each_feature["properties"]["ROAD"]
