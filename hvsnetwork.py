@@ -14,8 +14,11 @@ __version__ = "0.1.0"
 
 
 """ Specify the URL for the HVS network. """
-HVS_SOURCE = "https://opendata.arcgis.com/datasets/" +\
-    "9eddd767132d46aebdef328ec79573d3_46.geojson"
+HVS_SOURCE = "/Users/trisreed/Downloads/ArchiveToNAS-181017/Tandem_Drive_" + \
+    "Concessional_Network_2.1_N2.1_Without_Conditions.geojson"
+
+""" Specify where to read from URL or from File. """
+READ_FROM_URL = False
 
 
 """ Specify the base URL for the OSRM instance. """
@@ -23,16 +26,30 @@ OSRM_SOURCE = "https://router.project-osrm.org/"
 
 
 """ Import required libraries. """
-import pandas, polyline, requests, time, tqdm
+import json, pandas, polyline, requests, time, tqdm
+
+
+""" Shapely likes to do its own thing. """
 from shapely.geometry import shape
+from shapely.ops import linemerge
 
 
 def main():
 
-    """ Pull the GeoJSON file from Main Roads / ESRI. """
-    print("Retrieving data from Main Roads / ESRI...")
-    hvs_data = requests.get(HVS_SOURCE)
-    hvs_json = hvs_data.json()
+    """ Check source type and switch. """
+    if READ_FROM_URL:
+
+        """ Pull the GeoJSON file from Main Roads / ESRI. """
+        print("Retrieving data from Main Roads / ESRI...")
+        hvs_data = requests.get(HVS_SOURCE)
+        hvs_json = hvs_data.json()
+    
+    else:
+
+        """ Read it out of the file. """
+        print("Retrieving data from file.")
+        hvs_data = open(HVS_SOURCE, "r")
+        hvs_json = json.loads(hvs_data.read())
 
     """ Check for a CRS key and alert either way. """
     if ("crs" in hvs_json):
@@ -61,15 +78,23 @@ def main():
         """ Pull out the geographic data for this road. """
         road_geography = shape(each_feature["geometry"])
 
-        """ Simplify it for cases of 'dual carriageways'. """
-        road_geography = road_geography.simplify(0.05, 
-            preserve_topology = False)
+        """ Merge the lines (hopefully) if a MultiLineString. """
+        if (road_geography.geom_type == "MultiLineString"):
 
-        print(road_geography.coords)
+            """ Do the Line Merging. """
+            road_geography = linemerge(road_geography)
+
+            """ Simplify it for cases of 'dual carriageways'. """
+            road_geography = road_geography.simplify(0.1, 
+                preserve_topology = False)
+
+            """ Try Line Merging again. """
+            road_geography = linemerge(road_geography)
+
+        print(road_geography)
 
         """ Convert that into a list of the correct format. """
-        road_geography = polyline.encode([(coord[0], coord[1]) for coord in \
-            road_geography], precision = 5)
+        road_geography = polyline.encode(road_geography.coords, precision = 5)
 
         """ Generate the URL for the OSRM Matcher. """
         osrm_url = OSRM_SOURCE + "route/v1/driving/polyline(" + \
